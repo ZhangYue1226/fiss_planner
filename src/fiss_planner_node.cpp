@@ -33,9 +33,9 @@ int NUM_WP_LOOK_AHEAD;        // Number of waypoints to look ahead for Stanley
 double STANLEY_OVERALL_GAIN;  // Stanley overall gain
 double TRACK_ERROR_GAIN;      // Cross track error gain
 
-// Safety margins for collision check
-double LANE_WIDTH;
-double LEFT_LANE_WIDTH;       // Maximum left road width [m]
+// Safety margins for collision check  碰撞检查
+double LANE_WIDTH;  // 车道宽度
+double LEFT_LANE_WIDTH;       // Maximum left road width [m]  距离左侧车道线的最大宽度？相当于限制了距离右侧车道线的最小距离？  机械臂：改成末端与障碍物距离？（距离怎么定义？相机能测量吗？）其他关节怎么办？
 double RIGHT_LANE_WIDTH;      // Maximum right road width [m]
 // double NARROW_PATH_OFFSET = -0.3;
 
@@ -54,46 +54,46 @@ void dynamicParamCallback(fiss_planner::fiss_planner_Config& config, uint32_t le
   USE_HEURISTIC = config.use_heuristic;
   SETTINGS.tick_t = config.tick_t;
 
-  // Sampling parameters (lateral)
-  LANE_WIDTH = config.curr_lane_width;
-  LEFT_LANE_WIDTH = config.left_lane_width;
+  // Sampling parameters (lateral) （侧向）
+  LANE_WIDTH = config.curr_lane_width;   //车道宽度  机械臂：相机视野
+  LEFT_LANE_WIDTH = config.left_lane_width;  //机械臂：相机视野-四周的margin 机械臂不能超出这个范围
   RIGHT_LANE_WIDTH = config.right_lane_width;
-  SETTINGS.center_offset = config.center_offset;
-  SETTINGS.num_width = config.num_width;
-  // Sampling parameters (longitudinal)
-  SETTINGS.max_t = config.max_t;
+  SETTINGS.center_offset = config.center_offset;  //中心偏移量 何意？与上面两个参数不重复吗？
+  SETTINGS.num_width = config.num_width;  // 何意？
+  // Sampling parameters (longitudinal) （长度方向上）
+  SETTINGS.max_t = config.max_t; //这三行何意？
   SETTINGS.min_t = config.min_t;
   SETTINGS.num_t = config.num_t;
   
-  SETTINGS.highest_speed = kph2mps(config.highest_speed);
+  SETTINGS.highest_speed = kph2mps(config.highest_speed);  //什么的速度？？
   SETTINGS.lowest_speed = kph2mps(config.lowest_speed);
-  SETTINGS.num_speed = config.num_speed;
-  // Constraints
-  // SETTINGS.max_speed = Vehicle::max_speed();
+  SETTINGS.num_speed = config.num_speed;  //何意？
+  // Constraints  约束
+  // SETTINGS.max_speed = Vehicle::max_speed();   //机械臂：各关节速度、加速度、加加速度？
   // SETTINGS.max_accel = Vehicle::max_acceleration();
-  // SETTINGS.max_decel = Vehicle::max_deceleration();
-  // SETTINGS.max_curvature = Vehicle::max_curvature_front();
-  // SETTINGS.steering_angle_rate = Vehicle::max_steering_rate();
+  // SETTINGS.max_decel = Vehicle::max_deceleration();  //机械臂：无
+  // SETTINGS.max_curvature = Vehicle::max_curvature_front();  //机械臂：无
+  // SETTINGS.steering_angle_rate = Vehicle::max_steering_rate();  //前后轮转向比  机械臂：无
   SETTINGS.max_speed = kph2mps(config.max_speed);
   SETTINGS.max_accel = config.max_acceleration;
   SETTINGS.max_decel = -config.max_deceleration;
   SETTINGS.max_curvature = config.max_curvature;
-  SETTINGS.max_jerk_s = config.max_jerk_lon;
-  SETTINGS.max_jerk_d = config.max_jerk_lat;
-  // Cost Weights
-   SETTINGS.k_heuristic = config.k_heuristic;
+  SETTINGS.max_jerk_s = config.max_jerk_lon; // 长度向加加速度
+  SETTINGS.max_jerk_d = config.max_jerk_lat;  //侧向加加速度
+  // Cost Weights   成本权重  对应代码用的地方看！
+   SETTINGS.k_heuristic = config.k_heuristic;   
   SETTINGS.k_diff = config.k_diff;
   SETTINGS.k_time = config.k_time;
   SETTINGS.k_jerk = config.k_jerk;
   SETTINGS.k_lat = config.k_lat;
   SETTINGS.k_lon = config.k_lon;
   // SETTINGS.k_obstacle = config.k_obstacle;
-  // Safety constraints
+  // Safety constraints  安全约束
   SETTINGS.vehicle_length = config.vehicle_length;
   SETTINGS.vehicle_width = config.vehicle_width;
   SETTINGS.safety_margin_lon = config.safety_margin_lon;
   SETTINGS.safety_margin_lat = config.safety_margin_lat;
-  SETTINGS.safety_margin_soft = config.safety_margin_soft;
+  SETTINGS.safety_margin_soft = config.safety_margin_soft;  //何意？
   // PID and Stanley gains
   PID_Kp = config.PID_Kp;
   PID_Ki = config.PID_Ki;
@@ -467,14 +467,14 @@ void FissPlannerNode::publishEmptyTrajsAndStop()
 // Update the vehicle front axle state (used in odomcallback)
 void FissPlannerNode::updateVehicleFrontAxleState()
 {
-  // Current XY of robot (map frame)
+  // Current XY of robot (map frame)  当前车的位置  map坐标系
   frontaxle_state_.x = current_state_.x + (Vehicle::L() * std::cos(current_state_.yaw));
   frontaxle_state_.y = current_state_.y + (Vehicle::L() * std::sin(current_state_.yaw));
   frontaxle_state_.yaw = current_state_.yaw;
   frontaxle_state_.v = current_state_.v;
 }
 
-// Feed map waypoints into local map
+// Feed map waypoints into local map  
 bool FissPlannerNode::feedWaypoints()
 {
   if (lane_.points.empty())
@@ -501,12 +501,12 @@ bool FissPlannerNode::feedWaypoints()
   const double dist = distance(lane_.points[start_id].point.x, lane_.points[start_id].point.y, current_state_.x, current_state_.y);
   const double heading_diff = unifyAngleRange(current_state_.yaw - lane_.points[start_id].point.yaw);
 
-  if (dist > MAX_DIST_FROM_PATH)
+  if (dist > MAX_DIST_FROM_PATH) //限制车与路径最大距离
   {
-    ROS_WARN("Local Planner: Vehicle's Location Is Too Far From The Target Lane");
+    ROS_WARN("Local Planner: Vehicle's Location Is Too Far From The Target Lane");  
     return false;
   }
-  else if (std::abs(heading_diff) > HEADING_DIFF_THRESH)
+  else if (std::abs(heading_diff) > HEADING_DIFF_THRESH) //限制车方向与路径方向偏角
   {
     ROS_WARN("Local Planner: Vehicle's Is Heading In A Different Direction");
     return false;
@@ -633,13 +633,13 @@ void FissPlannerNode::updateStartState()
   }
 }
 
-// Calculate the sampling width for the planner
+// Calculate the sampling width for the planner  计算planner的采样宽度
 std::vector<double> FissPlannerNode::getSamplingWidthFromTargetLane(const int lane_id, const double vehicle_width, const double current_lane_width,
                                                                              const double left_lane_width, const double right_lane_width)
 {
   double left_bound, right_bound;
 
-  switch (lane_id)
+  switch (lane_id)  //换道
   {
     // all lanes
     case LaneID::ALL_LANES:
