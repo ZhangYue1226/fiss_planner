@@ -16,10 +16,10 @@ namespace fiss
 FissPlanner::Setting SETTINGS = FissPlanner::Setting();
 
 // Constants values used as thresholds (Not for tuning)
-const double WP_MAX_SEP = 3.0;                                    // Maximum allowable waypoint separation
+const double WP_MAX_SEP = 3.0;                                    // Maximum allowable waypoint separation 是路标点距离吗？用于采样道路情况的吗？单位？
 const double WP_MIN_SEP = 0.1;                                    // Minimum allowable waypoint separation
-const double HEADING_DIFF_THRESH = M_PI/2;                        // Maximum allowed heading diff between vehicle and path
-const double MAX_DIST_FROM_PATH = 10.0;                           // Maximum allowed distance between vehicle and path
+const double HEADING_DIFF_THRESH = M_PI/2;                        // Maximum allowed heading diff between vehicle and path  何意？车前进方向与路径方向的最大偏差角度？机械臂：定义为：末端执行器的速度方向与路径方向最大偏差角度？是否需要各关节速度方向与各关节路径方向最大偏差角度？（和选择关节空间还是笛卡尔空间下的轨迹规划 有关系吗？）
+const double MAX_DIST_FROM_PATH = 10.0;                           // Maximum allowed distance between vehicle and path  车与路径最大距离 机械臂：EE与路径最大距离（各关节与各关节的路径最大距离需要定义吗？）
 
 /* List of dynamic parameters */
 // Hyperparameters for output path
