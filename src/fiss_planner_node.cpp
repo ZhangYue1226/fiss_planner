@@ -23,7 +23,7 @@ const double MAX_DIST_FROM_PATH = 10.0;                           // Maximum all
 
 /* List of dynamic parameters */
 // Hyperparameters for output path
-double TRAJ_MAX_SIZE;  // Maximum size of the output path
+double TRAJ_MAX_SIZE;  // Maximum size of the output path  何意？一个轨迹的大小是什么意思？为何要限制？
 double TRAJ_MIN_SIZE;  // Minimum size of the output path
 
 // Control Parameters
