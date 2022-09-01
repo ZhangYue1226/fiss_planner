@@ -15,18 +15,18 @@ namespace fiss
 // FissPlanner settings
 FissPlanner::Setting SETTINGS = FissPlanner::Setting();
 
-// Constants values used as thresholds (Not for tuning)
+// Constants values used as thresholds (Not for tuning) 用作阈值的定值
 const double WP_MAX_SEP = 3.0;                                    // Maximum allowable waypoint separation 是路标点距离吗？用于采样道路情况的吗？单位？
 const double WP_MIN_SEP = 0.1;                                    // Minimum allowable waypoint separation
 const double HEADING_DIFF_THRESH = M_PI/2;                        // Maximum allowed heading diff between vehicle and path  何意？车前进方向与路径方向的最大偏差角度？机械臂：定义为：末端执行器的速度方向与路径方向最大偏差角度？是否需要各关节速度方向与各关节路径方向最大偏差角度？（和选择关节空间还是笛卡尔空间下的轨迹规划 有关系吗？）
 const double MAX_DIST_FROM_PATH = 10.0;                           // Maximum allowed distance between vehicle and path  车与路径最大距离 机械臂：EE与路径最大距离（各关节与各关节的路径最大距离需要定义吗？）
 
-/* List of dynamic parameters */
-// Hyperparameters for output path
+/* List of dynamic parameters */  //动态参数
+// Hyperparameters for output path  输出路径的超参
 double TRAJ_MAX_SIZE;  // Maximum size of the output path  何意？一个轨迹的大小是什么意思？为何要限制？
 double TRAJ_MIN_SIZE;  // Minimum size of the output path
 
-// Control Parameters
+// Control Parameters  控制参数
 double PID_Kp, PID_Ki, PID_Kd;
 // Stanley gains
 int NUM_WP_LOOK_AHEAD;        // Number of waypoints to look ahead for Stanley
@@ -45,7 +45,7 @@ bool USE_HEURISTIC;
 
 bool SETTINGS_UPDATED = false;
 
-// Dynamic parameter server callback function
+// Dynamic parameter server callback function  动态参数服务器回调函数
 void dynamicParamCallback(fiss_planner::fiss_planner_Config& config, uint32_t level)
 {
   // General Settings
@@ -54,13 +54,13 @@ void dynamicParamCallback(fiss_planner::fiss_planner_Config& config, uint32_t le
   USE_HEURISTIC = config.use_heuristic;
   SETTINGS.tick_t = config.tick_t;
 
-  // Sampling parameters (lateral) （侧向）
+  // Sampling parameters (lateral) （采样参数：侧向）
   LANE_WIDTH = config.curr_lane_width;   //车道宽度  机械臂：相机视野
   LEFT_LANE_WIDTH = config.left_lane_width;  //机械臂：相机视野-四周的margin 机械臂不能超出这个范围
   RIGHT_LANE_WIDTH = config.right_lane_width;
   SETTINGS.center_offset = config.center_offset;  //中心偏移量 何意？与上面两个参数不重复吗？
   SETTINGS.num_width = config.num_width;  // 何意？
-  // Sampling parameters (longitudinal) （长度方向上）
+  // Sampling parameters (longitudinal) （采样参数：长度方向上）
   SETTINGS.max_t = config.max_t; //这三行何意？
   SETTINGS.min_t = config.min_t;
   SETTINGS.num_t = config.num_t;
@@ -69,16 +69,16 @@ void dynamicParamCallback(fiss_planner::fiss_planner_Config& config, uint32_t le
   SETTINGS.lowest_speed = kph2mps(config.lowest_speed);
   SETTINGS.num_speed = config.num_speed;  //何意？
   // Constraints  约束
-  // SETTINGS.max_speed = Vehicle::max_speed();   //机械臂：各关节速度、加速度、加加速度？
+  // SETTINGS.max_speed = Vehicle::max_speed();   
   // SETTINGS.max_accel = Vehicle::max_acceleration();
-  // SETTINGS.max_decel = Vehicle::max_deceleration();  //机械臂：无
-  // SETTINGS.max_curvature = Vehicle::max_curvature_front();  //机械臂：无
+  // SETTINGS.max_decel = Vehicle::max_deceleration();  
+  // SETTINGS.max_curvature = Vehicle::max_curvature_front(); 
   // SETTINGS.steering_angle_rate = Vehicle::max_steering_rate();  //前后轮转向比  机械臂：无
-  SETTINGS.max_speed = kph2mps(config.max_speed);
-  SETTINGS.max_accel = config.max_acceleration;
-  SETTINGS.max_decel = -config.max_deceleration;
-  SETTINGS.max_curvature = config.max_curvature;
-  SETTINGS.max_jerk_s = config.max_jerk_lon; // 长度向加加速度
+  SETTINGS.max_speed = kph2mps(config.max_speed); //机械臂：各关节速度、加速度、加加速度？
+  SETTINGS.max_accel = config.max_acceleration;  //加速度
+  SETTINGS.max_decel = -config.max_deceleration; //负加速度
+  SETTINGS.max_curvature = config.max_curvature;  //曲率  机械臂：无
+  SETTINGS.max_jerk_s = config.max_jerk_lon; // 纵向加加速度
   SETTINGS.max_jerk_d = config.max_jerk_lat;  //侧向加加速度
   // Cost Weights   成本权重  对应代码用的地方看！
    SETTINGS.k_heuristic = config.k_heuristic;   
@@ -140,7 +140,7 @@ FissPlannerNode::FissPlannerNode() : tf_listener(tf_buffer)
   ROS_ASSERT(private_nh.getParam("candidate_trajs_topic", candidate_trajs_topic));
   ROS_ASSERT(private_nh.getParam("vehicle_cmd_topic", vehicle_cmd_topic));
 
-  // Instantiate FissPlanner
+  // Instantiate FissPlanner 
   frenet_planner_ = FissPlanner(SETTINGS);
 
   // Subscribe & Advertise
@@ -164,19 +164,19 @@ FissPlannerNode::FissPlannerNode() : tf_listener(tf_buffer)
   iteration_pub = nh.advertise<std_msgs::Float32>("fiss_planner/iteration", 1);
   cost_pub = nh.advertise<std_msgs::Float32>("fiss_planner/cost", 1);
 
-  // Initializing states
+  // Initializing states  初始化状态
   regenerate_flag_ = false;
   target_lane_id_ = LaneID::CURR_LANE;
   pid_ = control::PID(0.1, Vehicle::max_acceleration(), Vehicle::max_deceleration(), PID_Kp, PID_Ki, PID_Kd);
 };
 
-void FissPlannerNode::laneInfoCallback(const nav_msgs::Path::ConstPtr& global_path)
+void FissPlannerNode::laneInfoCallback(const nav_msgs::Path::ConstPtr& global_path)  //车道信息
 {
-  lane_ = Lane(global_path, LANE_WIDTH/2, LANE_WIDTH/2, LANE_WIDTH/2 + LEFT_LANE_WIDTH, LANE_WIDTH/2 + RIGHT_LANE_WIDTH);
+  lane_ = Lane(global_path, LANE_WIDTH/2, LANE_WIDTH/2, LANE_WIDTH/2 + LEFT_LANE_WIDTH, LANE_WIDTH/2 + RIGHT_LANE_WIDTH); // 车道信息
   ROS_INFO("Local Planner: Lane Info Received, with %d points, filtered to %d points", int(lane_.points.size()), int(lane_.points.size()));
 }
 
-// Update vehicle current state from the tf transform
+// Update vehicle current state from the tf transform  更新车当前状态
 void FissPlannerNode::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 {
   current_state_.v = magnitude(odom_msg->twist.twist.linear.x, odom_msg->twist.twist.linear.y, odom_msg->twist.twist.linear.z);
@@ -194,7 +194,7 @@ void FissPlannerNode::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 
   geometry_msgs::Pose pose_in_map;
   tf2::doTransform(odom_msg->pose.pose, pose_in_map, transform_stamped);
-  // Current XY of robot (map frame)
+  // Current XY of robot (map frame)  当前状态（在xy系中表示）
   current_state_.x = pose_in_map.position.x;
   current_state_.y = pose_in_map.position.y;
   map_height_ = pose_in_map.position.z - 0.3; // minus the tire radius
@@ -208,7 +208,7 @@ void FissPlannerNode::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 
 void FissPlannerNode::obstaclesCallback(const autoware_msgs::DetectedObjectArray::ConstPtr& input_obstacles)
 {
-  // Start a timing for the main algorithm
+  // Start a timing for the main algorithm  启动计时
   const auto start_time = std::chrono::high_resolution_clock::now();
   
   auto obstacles = boost::make_shared<autoware_msgs::DetectedObjectArray>();
@@ -228,9 +228,9 @@ void FissPlannerNode::obstaclesCallback(const autoware_msgs::DetectedObjectArray
     SETTINGS_UPDATED = false;
   }
     
-  ROS_INFO("Local Planner: Planning Start");
+  ROS_INFO("Local Planner: Planning Start"); //开始规划
 
-  // Update Waypoints
+  // Update Waypoints  更新路径点
   if (!feedWaypoints())
   {
     ROS_WARN("Local Planner: Waiting for Waypoints");
@@ -238,11 +238,11 @@ void FissPlannerNode::obstaclesCallback(const autoware_msgs::DetectedObjectArray
     return;
   }
 
-  // Update start state
+  // Update start state  更新起始状态
   updateStartState();
-  // Get the reference lane's centerline as a spline
+  // Get the reference lane's centerline as a spline  将参考路径中心线获取为一个样条曲线
   auto ref_path_and_curve = frenet_planner_.generateReferenceCurve(local_lane_);
-  // Store the results into reference spline
+  // Store the results into reference spline  存储为参考样条曲线
   ref_spline_ = std::move(ref_path_and_curve.first);
 
   if (ref_spline_.x.empty())
@@ -251,37 +251,37 @@ void FissPlannerNode::obstaclesCallback(const autoware_msgs::DetectedObjectArray
     publishEmptyTrajsAndStop();
     return;
   }
-  ROS_INFO("Local Planner: Reference Curve Generated");
+  ROS_INFO("Local Planner: Reference Curve Generated"); //“生成参考曲线”
 
-  // Define ROI width for path sampling
+  // Define ROI width for path sampling  ROI？region of interest?感兴趣的区域？  定义路径采样感兴趣区域的宽度（从目标路径获取采样宽度）0
   roi_boundaries_ = getSamplingWidthFromTargetLane(target_lane_id_, SETTINGS.vehicle_width, LANE_WIDTH, LEFT_LANE_WIDTH, RIGHT_LANE_WIDTH);
 
-  // Get the planning result 
+  // Get the planning result 获得规划结果
   const auto planning_results = frenet_planner_.frenetOptimalPlanning(ref_path_and_curve.second, start_state_, target_lane_id_, 
                                                                                       roi_boundaries_[0], roi_boundaries_[1], current_state_.v, 
                                                                                       *obstacles, CHECK_COLLISION, USE_ASYNC, USE_HEURISTIC);
   std::vector<FrenetPath> best_traj_list = planning_results.first;
   publishStats(planning_results.second);
   
-  ROS_INFO("Local Planner: Frenet Optimal Planning Done");
+  ROS_INFO("Local Planner: Frenet Optimal Planning Done"); //局部规划器：完成frenet最优规划
   publishCandidateTrajs(frenet_planner_.all_trajs_);
   if (best_traj_list.empty())
   {
-    ROS_ERROR("Local Planner: Frenet Optimal Planning Could Not Find a Safe Trajectory");
+    ROS_ERROR("Local Planner: Frenet Optimal Planning Could Not Find a Safe Trajectory"); // 失败：局部规划器：frenet最优规划找不到安全轨迹
     publishEmptyTrajsAndStop();
     return;
   }
 
-  // Find the best path from the all candidates 
+  // Find the best path from the all candidates 成功：从所有candidates中找到最优路径
   FrenetPath best_traj = selectLane(best_traj_list, current_lane_id_);
   ROS_INFO("Local Planner: Best trajs Selected");
   publishSampleSpace(ref_spline_);
   publishVisTraj(curr_trajectory_, best_traj);
 
-  // Concatenate the best path into output_path
+  // Concatenate the best path into output_path  将最优路径和输出路径拼接
   concatPath(best_traj, TRAJ_MAX_SIZE, TRAJ_MIN_SIZE, WP_MAX_SEP, WP_MIN_SEP);
 
-  // Publish the best trajs
+  // Publish the best trajs  输出最优路径
   publishRefSpline(ref_spline_);
   publishCurrTraj(curr_trajectory_);
   publishNextTraj(best_traj);
@@ -341,7 +341,7 @@ void FissPlannerNode::transformObjects(autoware_msgs::DetectedObjectArray& outpu
   }
 }
 
-// Publish the reference spline (for Rviz only)
+// Publish the reference spline (for Rviz only)  发布参考样条曲线
 void FissPlannerNode::publishRefSpline(const Path& path)
 {
   nav_msgs::Path ref_path_msg;
@@ -362,7 +362,7 @@ void FissPlannerNode::publishRefSpline(const Path& path)
   ref_path_pub.publish(ref_path_msg);
 }
 
-// Publish the current path (for Rviz and MPC)
+// Publish the current path (for Rviz and MPC)  发布当前路径
 void FissPlannerNode::publishCurrTraj(const Path& path)
 {
   nav_msgs::Path curr_trajectory_msg;
@@ -383,7 +383,7 @@ void FissPlannerNode::publishCurrTraj(const Path& path)
   curr_traj_pub.publish(curr_trajectory_msg);
 }
 
-// Publish the best next path (for Rviz only)
+// Publish the best next path (for Rviz only)  发布下一个最优路径
 void FissPlannerNode::publishNextTraj(const FrenetPath& next_traj)
 {
   nav_msgs::Path curr_trajectory_msg;
@@ -404,7 +404,7 @@ void FissPlannerNode::publishNextTraj(const FrenetPath& next_traj)
   next_traj_pub.publish(curr_trajectory_msg);
 }
 
-void FissPlannerNode::publishSampleSpace(const Path& ref_path)
+void FissPlannerNode::publishSampleSpace(const Path& ref_path)  //发布采样空间
 {
   int marker_id = 0;
   const auto sample_space_marker = CollisionDetectorVisualization::visualizePredictedTrajectory(
@@ -432,16 +432,16 @@ void FissPlannerNode::publishVisTraj(const Path& current_traj, const FrenetPath&
 }
 
 /**
- * @brief publish candidate trajs for visualization in rviz
+ * @brief publish candidate trajs for visualization in rviz  //为了rviz可视化，发布candidates轨迹
  * 
  */
-void FissPlannerNode::publishCandidateTrajs(const std::vector<FrenetPath>& candidate_trajs)
+void FissPlannerNode::publishCandidateTrajs(const std::vector<FrenetPath>& candidate_trajs)  //发布candidates轨迹
 {
   const auto candidate_paths_markers = LocalPlannerVisualization::visualizeCandidateTrajs(candidate_trajs, map_height_, Vehicle::max_speed());
   candidate_paths_pub.publish(std::move(candidate_paths_markers));
 }
 
-void FissPlannerNode::publishStats(std::vector<double> stats)
+void FissPlannerNode::publishStats(std::vector<double> stats)  //发布状态
 {
   std_msgs::Float32 run_time, frequency, iteration, cost;
   run_time.data = stats[0];
@@ -464,7 +464,7 @@ void FissPlannerNode::publishEmptyTrajsAndStop()
   publishVehicleCmd(-1.0, 0.0);
 }
 
-// Update the vehicle front axle state (used in odomcallback)
+// Update the vehicle front axle state (used in odomcallback)  更新车前轴状态
 void FissPlannerNode::updateVehicleFrontAxleState()
 {
   // Current XY of robot (map frame)  当前车的位置  map坐标系
@@ -474,7 +474,7 @@ void FissPlannerNode::updateVehicleFrontAxleState()
   frontaxle_state_.v = current_state_.v;
 }
 
-// Feed map waypoints into local map  
+// Feed map waypoints into local map  将map路径点放到局部地图中
 bool FissPlannerNode::feedWaypoints()
 {
   if (lane_.points.empty())
