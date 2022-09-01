@@ -80,7 +80,7 @@ void dynamicParamCallback(fiss_planner::fiss_planner_Config& config, uint32_t le
   SETTINGS.max_curvature = config.max_curvature;  //曲率  机械臂：无
   SETTINGS.max_jerk_s = config.max_jerk_lon; // 纵向加加速度
   SETTINGS.max_jerk_d = config.max_jerk_lat;  //侧向加加速度
-  // Cost Weights   成本权重  对应代码用的地方看！
+  // Cost Weights   成本权重  
    SETTINGS.k_heuristic = config.k_heuristic;   
   SETTINGS.k_diff = config.k_diff;
   SETTINGS.k_time = config.k_time;
@@ -206,13 +206,13 @@ void FissPlannerNode::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
   m.getRPY(roll, pitch, current_state_.yaw);
 }
 
-void FissPlannerNode::obstaclesCallback(const autoware_msgs::DetectedObjectArray::ConstPtr& input_obstacles)
+void FissPlannerNode::obstaclesCallback(const autoware_msgs::DetectedObjectArray::ConstPtr& input_obstacles) //输入障碍物
 {
   // Start a timing for the main algorithm  启动计时
   const auto start_time = std::chrono::high_resolution_clock::now();
   
   auto obstacles = boost::make_shared<autoware_msgs::DetectedObjectArray>();
-  transformObjects(*obstacles, *input_obstacles);
+  transformObjects(*obstacles, *input_obstacles); //输入障碍物 调用的transformObjects函数在Line294
   obstacles_pub.publish(*obstacles);
 
   // Check if all required data are in position
